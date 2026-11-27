@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secret Santa Generator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- ================= ORGANIZER VIEW ================= -->
+    <div id="organizer-view">
+      <header class="header">
+        <div class="badge" aria-hidden="true">🎁 Office Edition</div>
+        <h1>Secret Santa</h1>
+        <p class="subtitle">
+          Add your team, draw cross-department matches, and send each employee their own private reveal link.
+        </p>
+      </header>
+
+      <main>
+        <!-- Step 1: Setup -->
+        <section id="setup-section" class="card">
+          <div class="section-header">
+            <h2>1. Event &amp; Participants</h2>
+            <div class="header-actions">
+              <button type="button" id="sample-btn" class="btn btn-ghost">Load Sample</button>
+              <button type="button" id="clear-btn" class="btn btn-ghost danger-text">Clear All</button>
+            </div>
+          </div>
+
+          <!-- Optional Event Details -->
+          <div class="event-meta-grid">
+            <div class="field">
+              <label for="event-title-input">Event Name (optional)</label>
+              <input type="text" id="event-title-input" placeholder="e.g., Office Secret Santa 2026" maxlength="60" />
+            </div>
+            <div class="field">
+              <label for="event-budget-input">Gift Budget (optional)</label>
+              <input type="text" id="event-budget-input" placeholder="e.g., 100 AED / $25" maxlength="30" />
+            </div>
+            <div class="field">
+              <label for="event-date-input">Exchange Date (optional)</label>
+              <input type="text" id="event-date-input" placeholder="e.g., Dec 20" maxlength="30" />
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <!-- Participant Form -->
+          <form id="participant-form" class="input-form" autocomplete="off">
+            <div class="field">
+              <label for="name-input">Employee Name</label>
+              <input type="text" id="name-input" placeholder="e.g., Maya Lin" required maxlength="40" />
+            </div>
+
+            <div class="field">
+              <label for="dept-input">Department</label>
+              <input
+                type="text"
+                id="dept-input"
+                list="department-suggestions"
+                placeholder="e.g., Engineering"
+                required
+                maxlength="40"
+              />
+              <datalist id="department-suggestions"></datalist>
+            </div>
+
+            <button type="submit" class="btn btn-secondary add-btn">Add Person</button>
+          </form>
+
+          <div id="status-message" class="status-message" role="alert" aria-live="polite"></div>
+
+          <div class="list-header">
+            <span>Participants (<strong id="participant-count">0</strong>)</span>
+            <span id="dept-summary" class="dept-summary"></span>
+          </div>
+
+          <ul id="participant-list" class="participant-list">
+            <li class="empty-state">No participants yet. Add at least 2 people from different departments.</li>
+          </ul>
+
+          <div class="draw-bar">
+            <button type="button" id="draw-btn" class="btn btn-primary btn-large" disabled>
+              🎄 Draw Names &amp; Generate Links
+            </button>
+          </div>
+        </section>
+
+        <!-- Step 2: Share Links & Results -->
+        <section id="results-section" class="card hidden">
+          <div class="section-header">
+            <div>
+              <h2>2. Share Private Links</h2>
+              <p class="section-hint">
+                Send each person their unique link. Nobody can see anyone else's match.
+              </p>
+            </div>
+            <div class="header-actions">
+              <button type="button" id="redraw-btn" class="btn btn-secondary">Redraw</button>
+              <button type="button" id="edit-btn" class="btn btn-ghost">Edit List</button>
+            </div>
+          </div>
+
+          <div id="links-list" class="links-list"></div>
+
+          <hr class="divider" />
+
+          <!-- Organizer Controls -->
+          <div class="organizer-tools">
+            <div class="tools-left">
+              <button type="button" id="toggle-master-btn" class="btn btn-ghost">
+                👁️ Show Master Results
+              </button>
+              <button type="button" id="export-csv-btn" class="btn btn-ghost">
+                ⬇️ Download CSV
+              </button>
+            </div>
+            <span id="sent-counter" class="sent-counter">0 / 0 links copied</span>
+          </div>
+
+          <!-- Hidden Master Results Table -->
+          <div id="master-results" class="master-results hidden">
+            <h3>Master Match List (Organizer Only)</h3>
+            <div class="table-wrap">
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th>Giver</th>
+                    <th>Department</th>
+                    <th>Gifts To</th>
+                    <th>Receiver Dept</th>
+                  </tr>
+                </thead>
+                <tbody id="master-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- ================= EMPLOYEE REVEAL VIEW ================= -->
+    <div id="employee-view" class="hidden">
+      <div class="card reveal-page-card">
+        <div class="badge" id="emp-event-badge">🎁 Secret Santa</div>
+        <h1 class="emp-greeting">Hi, <span id="emp-giver-name"></span>!</h1>
+        <p class="emp-subtitle">Your Secret Santa match is ready. Make sure nobody is peeking!</p>
+
+        <!-- Unwrapped State -->
+        <div id="emp-locked-box" class="gift-stage">
+          <button type="button" id="unwrap-btn" class="gift-box-btn" aria-label="Tap to unwrap your Secret Santa match">
+            <span class="gift-emoji" aria-hidden="true">🎁</span>
+            <span class="gift-cta">Tap to Unwrap Your Match</span>
+          </button>
+        </div>
+
+        <!-- Revealed State -->
+        <div id="emp-revealed-box" class="revealed-stage hidden">
+          <p class="reveal-label">You are Secret Santa for:</p>
+          <div class="match-box">
+            <div id="emp-receiver-name" class="match-name"></div>
+            <div id="emp-receiver-dept" class="match-dept"></div>
+          </div>
+
+          <div id="emp-meta-pills" class="emp-meta-pills"></div>
+
+          <p class="emp-reminder">Keep it a secret until the exchange!</p>
+        </div>
+
+        <div id="emp-error-box" class="hidden">
+          <p class="status-message error">
+            This reveal link appears to be invalid or incomplete. Please ask your organizer to resend your link.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
